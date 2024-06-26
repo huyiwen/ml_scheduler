@@ -1,0 +1,13 @@
+model,checkpoint
+alpacaflan-packing,200
+alpacaflan-packing,400
+alpacaflan-packing,600
+alpacaflan-packing,800
+alpacaflan-packing,1000
+alpacaflan-packing,1200
+alpacaflan-qlora,200-merged
+alpacaflan-qlora,400-merged
+alpacaflan-qlora,600-merged
+alpacaflan-qlora,800-merged
+alpacaflan-qlora,1000-merged
+alpacaflan-qlora,1200-merged
