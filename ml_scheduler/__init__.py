@@ -2,7 +2,7 @@
 
 A lightweight machine learning experiments scheduler in a few lines of simple Python
 """
-__version__ = "0.0.1"
+__version__ = "1.0.0"
 import coloredlogs
 
 coloredlogs.install()
