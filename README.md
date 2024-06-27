@@ -15,10 +15,18 @@
 
 ## Quick Start
 
-1. Install ml_scheduler
+1. Install ml-scheduler
 
 ```bash
-pip install ml_scheduler
+pip install ml-scheduler
+```
+
+or install from the github repository:
+
+```bash
+git clone https://github.com/huyiwen/ml_scheduler
+cd ml_scheduler
+pip install -e .
 ```
 
 2. Create a Python script:
