@@ -1,7 +1,7 @@
 [project]
 name = "ml_scheduler"
 version = "1.0.0"
-description = "A lightweight machine learning experiments scheduler in a few lines of simple Python"
+description = "A lightweight machine learning experiment scheduler that automates resource management (e.g., GPUs and models) and batch runs experiments with just a few lines of Python code."
 authors = [
     {name = "Yiwen Hu", email = "1020030101@qq.com"},
 ]
