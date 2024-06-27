@@ -11,7 +11,7 @@
 [![Downloads](https://pepy.tech/badge/ml_scheduler)](https://pepy.tech/project/ml_scheduler)-->
 
 
-[**ML Scheduler**]((https://github.com/huyiwen/ml_scheduler/)) is a lightweight machine learning experiment scheduler that automates resource management (e.g., GPUs and models) and batch runs experiments with just a few lines of Python code.
+[**ML Scheduler**](https://github.com/huyiwen/ml_scheduler/) is a lightweight machine learning experiment scheduler that automates resource management (e.g., GPUs and models) and batch runs experiments with just a few lines of Python code.
 
 ## Quick Start
 
