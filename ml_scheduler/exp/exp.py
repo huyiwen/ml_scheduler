@@ -2,7 +2,7 @@ import asyncio
 import subprocess
 import threading
 from logging import getLogger
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Optional, Set
 
 from ..pools.base import BaseAllocator, BaseResources
 from .runner import BaseRunner
@@ -61,6 +61,8 @@ class Exp:
 
         return stdout
 
-    async def report(self, metrics: Dict[str, Any], **kwargs):
+    async def report(self, metrics: Optional[Dict[str, Any]] = None, **kwargs):
+        if metrics is None:
+            metrics = {}
         metrics.update(kwargs)
         await self.runner._report(self.uuid, metrics)

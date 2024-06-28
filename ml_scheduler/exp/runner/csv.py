@@ -22,6 +22,7 @@ class CSVRunner(BaseRunner):
         read_csv_kwargs: Optional[dict] = None,
         uuid_column: str = ":uuid:",
         retval_column: Optional[str] = ":retval:",
+        extra_kwargs: Optional[Dict[str, Any]] = None,
     ):
         """Run experiments from a csv file
 
@@ -32,14 +33,16 @@ class CSVRunner(BaseRunner):
             read_csv_kwargs (`Optional[dict]`, optional): Additional kwargs passed to `pandas.read_csv`. Defaults to None.
             uuid_column (`str`, optional): The column name for the uuid. Defaults to `":uuid:"`.
             retval_column (`Optional[str]`, optional): The column name for the return value. None for not saving the return value. Defaults to `":retval:"`.
+            extra_kwargs (`Optional[Dict[str, Any]]`, optional): Extra kwargs passed to exp_func.
         """
         kwargs = {
             "csv_path": csv_path,
             "continue_cols": continue_cols,
             "force_rerun": force_rerun,
-            "read_csv_kwargs": read_csv_kwargs or {},
+            "read_csv_kwargs": read_csv_kwargs,
             "uuid_column": uuid_column,
             "retval_column": retval_column,
+            "extra_kwargs": extra_kwargs,
         }
         return asyncio.run(self.arun(**kwargs))
 
@@ -68,15 +71,22 @@ class CSVRunner(BaseRunner):
         if not force_rerun:
             rows = False
             for col in self.continue_cols:
-                rows |= df[col].isnull()
-            added = int(rows.sum())
-            logger.info(f"Adding {added} tasks ({len(df) - added} skipped).")
+                if col in df.columns:
+                    rows |= df[col].isnull()
+            if isinstance(rows, bool):
+                rows = slice(None)
+                logger.info(f"Adding {len(df)} tasks.")
+            else:
+                added = int(rows.sum())
+                logger.info(
+                    f"Adding {added} tasks ({len(df) - added} skipped).")
         else:
             rows = slice(None)
             logger.info(f"Adding {len(df)} tasks.")
 
         tasks = [
-            self.create_task(uuid, **row) for uuid, row in df[rows].iterrows()
+            self.create_task(uuid, **row, **self.extra_kwargs)
+            for uuid, row in df[rows].iterrows()
         ]
 
         return tasks
@@ -112,13 +122,15 @@ class CSVRunner(BaseRunner):
         read_csv_kwargs: Optional[dict] = None,
         uuid_column: str = ":uuid:",
         retval_column: Optional[str] = ":retval:",
+        extra_kwargs: Optional[Dict[str, Any]] = None,
     ):
         """Async run experiments from a csv file"""
 
         self.csv_path = csv_path
         self.continue_cols = continue_cols
-        self.read_csv_kwargs = read_csv_kwargs
+        self.read_csv_kwargs = read_csv_kwargs or {}
         self.uuid_column = uuid_column
+        self.extra_kwargs = extra_kwargs or {}
 
         tasks = self.submit_from_csv(force_rerun)
 

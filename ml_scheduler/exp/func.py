@@ -1,15 +1,22 @@
 import inspect
+from logging import getLogger
+from traceback import format_exc
 from typing import Any, Tuple
 
 from .exp import Exp
 from .runner.csv import CSVRunner
+
+logger = getLogger(__name__)
 
 
 class ExpFunc:
 
     def __init__(self, exp_func) -> None:
         self.exp_func = exp_func
-        self.run_csv = CSVRunner.set(self).run
+
+        csvrunner = CSVRunner.set(self)
+        self.run_csv = csvrunner.run
+        self.arun_csv = csvrunner.arun
 
     async def __call__(self, exp: Exp, **kwargs) -> Tuple[Exp, Any]:
         assert isinstance(exp, Exp)
@@ -20,7 +27,13 @@ class ExpFunc:
         ba = inspect.signature(self.exp_func).bind(exp, **filtered_kwargs)
         ba.apply_defaults()
 
-        results = await self.exp_func(**ba.arguments)
+        try:
+            results = await self.exp_func(**ba.arguments)
+        except Exception as e:
+            logger.warning(format_exc())
+            logger.error(f"Error in {self.exp_func.__name__}: {e}")
+            results = ""
+
         await exp.cleanup()
         return (exp, results)
 
