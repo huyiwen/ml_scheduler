@@ -16,5 +16,7 @@ OR
 
 Changelog
 =========
-## 1.0.0 - TBD
+## 1.0.0
 - Initial API stable release.
+## 1.2.0
+- Add SQLite support.
