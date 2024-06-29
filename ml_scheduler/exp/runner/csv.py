@@ -6,7 +6,9 @@ from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 import pandas
+import readchar
 
+from ...threads import to_thread
 from .base import BaseRunner
 
 logger = getLogger(__name__)
@@ -46,14 +48,24 @@ class CSVRunner(BaseRunner):
         }
         return asyncio.run(self.arun(**kwargs))
 
-    def submit_from_csv(
+    def submit_from(
         self,
         force_rerun: bool = False,
     ):
-        if os.path.exists(self.csv_path + ".lock"):
-            os.remove(self.csv_path + ".lock")
-        df: pandas.DataFrame = pandas.read_csv(self.csv_path,
-                                               **self.read_csv_kwargs)
+        if os.path.exists("." + self.csv_path + ".lock"):
+            logger.warning(
+                f'Lock file ".{self.csv_path}.lock" already exists!\n"(C)ontinue anyway, (Q)uit:"'
+            )
+            op = None
+            while op not in ["c", "q"]:
+                op = readchar.readchar().lower()
+            if op == "c":
+                return
+            os.remove("." + self.csv_path + ".lock")
+        df: pandas.DataFrame = pandas.read_csv(
+            self.csv_path,
+            **self.read_csv_kwargs,
+        )
 
         # set uuid
         if self.uuid_column not in df.columns:
@@ -73,6 +85,11 @@ class CSVRunner(BaseRunner):
             for col in self.continue_cols:
                 if col in df.columns:
                     rows |= df[col].isnull()
+                else:
+                    # needs to fill in the empty column
+                    rows = False
+                    break
+
             if isinstance(rows, bool):
                 rows = slice(None)
                 logger.info(f"Adding {len(df)} tasks.")
@@ -91,28 +108,36 @@ class CSVRunner(BaseRunner):
 
         return tasks
 
-    async def __write_cell(self, row, col, value):
+    async def _write_cell(self, row, col, value):
 
-        lock_file = self.csv_path + ".lock"
-        timeout = 10
+        lock_file = "." + self.csv_path + ".lock"
+        timeout = 100
         counts = 0
         while os.path.exists(lock_file):
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.01)
             counts += 1
             if counts == timeout:
                 logger.error(f"Timeout waiting for lock file {lock_file}")
                 return
 
-        shutil.copy(self.csv_path, lock_file)
-        df = pandas.read_csv(self.csv_path, index_col=self.uuid_column)
-        df.loc[row, col] = value
-        df.to_csv(self.csv_path, index=True)
-        os.remove(lock_file)
+        def _write_atomic(lock_file, csv_path, row, col, value):
+            shutil.copy(csv_path, lock_file)
+            try:
+                df = pandas.read_csv(
+                    csv_path,
+                    index_col=self.uuid_column,
+                    **self.read_csv_kwargs,
+                )
+                df.loc[row, col] = value
+                df.to_csv(csv_path, index=True)
+            except Exception as e:
+                shutil.copy(lock_file, csv_path)
+                logger.warning(f"Error writing to csv: {e}")
+            finally:
+                os.remove(lock_file)
 
-    async def _report(self, uuid: str, metrics: Dict[str, Any]):
-        logger.info(f"Reporting {uuid} {metrics}")
-        for metric, value in metrics.items():
-            await self.__write_cell(uuid, metric, value)
+        await to_thread(_write_atomic, lock_file, self.csv_path, row, col,
+                        value)
 
     async def arun(
         self,
@@ -132,11 +157,11 @@ class CSVRunner(BaseRunner):
         self.uuid_column = uuid_column
         self.extra_kwargs = extra_kwargs or {}
 
-        tasks = self.submit_from_csv(force_rerun)
+        tasks = self.submit_from(force_rerun)
 
         # block until all tasks are done
         for task in asyncio.as_completed(tasks):
             exp, results = await task
             logger.info(f"Finished {exp.uuid}")
             if retval_column is not None:
-                await self.__write_cell(exp.uuid, retval_column, results)
+                await self._write_cell(exp.uuid, retval_column, results)
