@@ -13,6 +13,8 @@
 
 [**ML Scheduler**](https://github.com/huyiwen/ml_scheduler/) is a lightweight machine learning experiment scheduler that automates resource management (e.g., GPUs and models) and batch runs experiments with just a few lines of Python code.
 
+- [Step by step tutorial: what you schedule is what you get](https://medium.com/@huyiwen/ml-scheduler-what-you-schedule-is-what-you-get-272135c7ce79)
+
 ## Quick Start
 
 1. Install ml-scheduler
